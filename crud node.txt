@@ -1,0 +1,170 @@
+const express = require("express");
+const app = express();
+app.use(express.json());
+const port = 4040;
+const mongoose = require("mongoose");
+
+const userModel = require("./models/user");
+
+mongoose
+  .connect("mongodb+srv://mcauser:<password>@mca.7p4ov.mongodb.net/myFirstDatabase?retryWrites=true&w=majority")
+  .then(() => console.log("mongo db connected"));
+
+app.get("/api/", (req, res) => res.send("Hello Fullstack!"));
+
+// Get list of all users
+app.get("/api/list", async (req, res) => {
+  const userList = await userModel.find({}, { username: true });
+
+  if (userList.length === 0) {
+    return res.json({ data: "no users in fullstack" });
+  }
+
+  return res.json({ data: userList });
+});
+
+// Register user
+app.post("/api/registration", (req, res) => {
+  const newUser = req.body;
+  userModel.create(newUser);
+  return res.json({ data: "registered successfully" });
+});
+
+app.listen(port, () => console.log(`server running on port 4040`));
+
+
+
+
+
+
+/* ------------------------------------------------------------------- */
+
+
+
+
+
+
+require("dotenv").config();
+
+const express = require("express");
+const app = express();
+app.use(express.json());
+const port = 5000;
+const mongoose = require("mongoose");
+const userModel = require("./models/users");
+
+mongoose
+    .connect(process.env.MONGOURL)
+    .then( () => console.log("mongo db connected") );
+
+app.get("/" , (req , res) => res.send("WELCOME") );
+
+// USER FETCH...
+
+app.get("/list" , async (req , res) => {
+
+    const userList = await userModel.find();
+
+    if(userList.length == 0)
+    {
+        return res.json({ data : "bo user in mydatabase" });
+    }
+
+    return res.json({ data : userList });
+
+} );
+
+// INSERT USER...
+
+app.post("/registration" , (req , res) => {
+
+    const { newUser } = req.body;
+    userModel.create(newUser);
+
+    return res.json({ data : "register successfull..." });
+
+} );
+
+// LOG IN USER...
+
+app.post("/login" , async (req , res) => {
+
+    const uname = req.body.username;
+    const pass = req.body.password;
+
+    const user = await userModel.findOne({ username : uname , password : pass });
+
+    if(user)
+    {
+        return res.json({ data : "Log in Successfull..." });
+    }
+
+    return res.json({ data : "Invalid Data..." });
+
+} );
+
+// UPDATE USER...
+
+app.put("/user/changepassword/:uname" , async (req , res) => {
+
+    const uname = req.params.uname;
+    const pass = req.params.password;
+
+    try {
+
+        const updateUser = await userModel.findOneAndUpdate(
+            { username : uname }, 
+            { password : pass }, 
+            { new : true }
+        );
+    
+        return res.json({ data : "Password Updated Successfully..." });
+
+    } catch (err) {
+        return res.json({ data : err });
+    }
+
+    
+
+});
+
+app.delete("/user/deleteuser/:uname" , async (req , res) => {
+
+    try {
+
+        const uname = req.params.uname;
+    
+        const deleteUser = await userModel.findOneAndDelete({ username : uname });
+    
+        return res.json({ data : "User Has Been Deleted Successfully..." });
+    } catch (err) {
+        return res.json({ data : err });
+    }
+
+ 
+
+});
+
+
+app.listen(port , () => { console.log("server running on port 5000"); } );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

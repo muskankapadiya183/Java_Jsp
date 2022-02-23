@@ -1,0 +1,381 @@
+const mongoose = require('mongoose');
+
+mongoose.connect(process.env.MONGOURL).then( () => console.log("MongoDb Connected...") );
+
+MONGOURL =  "mongodb+srv://nick:nick@cluster0.vtigo.mongodb.net/mernstack?retryWrites=true&w=majority"
+
+# minimum 32 characters
+
+SECRET_KEY = DHAVALPATELDHAVALPATELDHAVALPATELDHAVALPATEL
+
+require('dotenv').config();
+const mongoose = require('mongoose');
+const express = require('express');
+const app = express();
+
+require('./DB/connection');
+
+app.use(express.json());
+
+// const Usr = require('./models/userSchema');
+
+// link router files
+const userRouter = require('./router/auth');
+
+app.use('/user' , userRouter);
+// Middleware
+
+const middleware = (req , res , next) => {
+    console.log("This is middleware");
+    next();
+}
+
+// middleware();
+
+// app.get('/' , (req , res) => {
+//     return res.send("Hello MERN");
+// });
+
+// app.get('/about' , middleware , (req , res) => {
+//     console.log("This is middleware on about page");
+//     return res.send("About page");
+// });
+
+
+app.listen(5000 , () =>  console.log("Server running on post 5000"));
+
+
+
+
+
+const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+const userSchema = new mongoose.Schema({
+
+    name : {
+        type : String,
+        required : true
+    },
+    email : {
+        type : String,
+        required : true
+    },
+    phone : {
+        type : Number,
+        required : true
+    },
+    work : {
+        type : String,
+        required : true
+    },
+    password : {
+        type : String,
+        required : true
+    },
+    cpassword : {
+        type : String,
+        required : true
+    },
+    tokens : [
+        {
+            token : {
+                type : String,
+                required : true
+            }
+        }
+    ]
+
+});
+
+
+
+const User = mongoose.model('USER' , userSchema);
+
+module.exports = User;
+
+
+/****************
+
+
+const jwt = require('jsonwebtoken');
+const { Router } = require('express');
+const express = require('express');
+const { Mongoose } = require('mongoose');
+const bcrypt = require('bcryptjs');
+const router = express.Router();
+
+require('../DB/connection');
+const User = require('../models/userSchema');
+
+router.get('/' , (req , res) => {
+    res.send("Hello This is router");
+});
+
+    // using promisies...
+
+// router.post('/register' , (req , res) => {
+//     // res.json({ data : req.body });
+//     // console.log(req.body);
+//     // res.send(req.body);
+
+//     const { name , email , phone , work , password , cpassword } = req.body;
+
+//     if(!name || !email || !phone || !work || !password || !cpassword)
+//     {
+//         return res.status(422).json({ error : "Enter Value" });
+//     }
+
+//     User.findOne({ email : email })
+//     .then((userExists) => {
+//         if(userExists)
+//         {
+//             return res.status(422).json({ error : "Email already Exist" });
+//         }
+
+//         // if key and value are same then we dont have to write both [ feature of ES6 ]
+//         // like name : name
+
+//         const user = new User({ name , email , phone , work , password , cpassword });
+
+//         user.save().then(() => {
+//             res.status(201).json({ message : "user registered successfully..." })
+//             .catch((err) => res.status(500).json({ error : "Failed to registered" }));
+//         });
+
+//     }).catch((err) => { console.log(err); });
+
+// });
+
+
+    // using async await
+
+router.post('/register' , async (req , res) => {
+    // res.json({ data : req.body });
+    // console.log(req.body);
+    // res.send(req.body);
+
+    const { name , email , phone , work , password , cpassword } = req.body;
+
+    if(!name || !email || !phone || !work || !password || !cpassword)
+    {
+        return res.status(422).json({ error : "Enter Value" });
+    }
+
+    try {
+
+        const userExists =  await User.findOne({ email : email });
+
+        if(userExists)
+        {
+            return res.status(422).json({ error : "Email already Exist" });
+        }else if(password != cpassword) {
+            return res.status(422).json({ error : "password are not matching" });
+        }else {
+
+            const user = new User({ name , email , phone , work , password , cpassword });
+
+            await user.save();
+    
+            return res.status(422).json({ message : "user registered successfully..." });
+           
+        }
+        
+    } catch (err) {
+        console.log(err);
+    }
+
+});
+
+// LOG IN Router...
+
+router.post('/signin' , async (req, res) => {
+
+    try {
+
+        const { email , password } = req.body;
+
+        if(!email || !password)
+        {
+            return res.status(400).json({ error : "Please enter data" });
+        }
+
+        const userLogin = await User.findOne({ email : email });
+        
+        // console.log(userLogin);
+
+        if(userLogin)
+        {
+            const isMatch = await bcrypt.compare(password , userLogin.password);
+
+            const token = await userLogin.generateAuthToken();
+            console.log(token);
+
+            // cookies contains two parameters and option callback function... [ callback function -> automatically token expires in 3 min. ]
+
+            res.cookie("jwtoken" , token , {
+                expires : new Date(Date.now() + 25892000000), // Current date + miliseconds [ here is 30 days... ]
+                httpOnly : true // default runs only on HTTPS this will run HTTP...
+            } );
+
+            if(!isMatch)
+            {
+                res.status(400).json({ error : "Invalid Credantioal..." });
+            }
+            else
+            {
+                res.json({ message : "User Signin Successfully..." });
+            }
+        }
+        else
+        {
+            res.json({ message : "Invalid Credentials..." });
+        }
+
+      
+        
+    } catch (err) {
+        console.log(err);
+    }
+
+});
+
+
+module.exports = router;
+
+/******************************************
+
+frontend
+
+
+
+
+  const navigate = useNavigate();
+
+  const [user , setUser] = useState({
+    name : "",
+    email : "",
+    phone : "",
+    work : "",
+    password : "",
+    cpassword : "",
+  });
+
+let name , value;
+
+  const handleInputs = (e) => {
+    console.log(e);
+    name = e.target.name;
+    value = e.target.value;
+
+    setUser({...user , [name]:value});
+  }
+
+
+
+  const postData = async (e) => {
+    e.preventDefault();
+
+    const { name , email , phone , work , password , cpassword } = user;
+ 
+    const res = await fetch("/register" , {
+      method : "POST",
+      headers : {
+        "Content-Type" : "application/json"
+      },
+      body : JSON.stringify({
+        name , email , phone , work , password , cpassword
+      })
+    });
+
+    const data = await res.json();
+
+    if(data.status === 422 || !data)
+    {
+
+      window.alert("Invalid registration");
+      console.log("Invalid registration");
+      
+    }
+    else
+    {
+
+      window.alert("Registration Successfull");
+      console.log("Registration Successfull");
+
+      navigate("/login");
+
+    }
+
+  }
+
+
+  <div className="form-group py-3">
+              <label for="name"> Name </label>
+              <input type="text" name="name" 
+              value={user.name}
+              onChange={handleInputs}
+              className="form-control" id="name" aria-describedby="" placeholder="Enter Name" />
+            </div>
+
+            <div className="form-group py-3">
+              <label for="exampleInputEmail1">Email address</label>
+              <input type="email" name="email" 
+              value={user.email}
+              onChange={handleInputs}
+              className="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="Enter email" />
+              <small id="emailHelp" className="form-text text-muted">We'll never share your email with anyone else.</small>
+            </div>
+
+
+   <li className="nav-item">
+        <NavLink className="nav-link" to="/about"> About </NavLink>
+      </li>
+      <li className="nav-item">
+        <NavLink className="nav-link" to="/contact"> Contact </NavLink>
+      </li>
+      <li className="nav-item">
+        <NavLink className="nav-link" to="/login"> Log in </NavLink>
+      </li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
